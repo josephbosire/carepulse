@@ -7,7 +7,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { Form } from "@/components/ui/form";
-import { createUser } from "@/lib/actions/patient.actions";
 import { getAppointmentSchema } from "@/lib/validation";
 
 import "react-phone-number-input/style.css";
@@ -26,7 +25,7 @@ import { Appointment } from "@/types/appwrite.types";
 export const AppointmentForm = ({
   userId,
   patientId,
-  type,
+  type = "create",
   appointment,
   setOpen,
 }: {
@@ -34,7 +33,7 @@ export const AppointmentForm = ({
   patientId: string;
   type: "create" | "cancel" | "schedule";
   appointment?: Appointment;
-  setOpen: (open: boolean) => void;
+  setOpen?: (open: boolean) => void;
 }) => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -46,18 +45,22 @@ export const AppointmentForm = ({
     defaultValues: {
       primaryPhysician: appointment ? appointment.primaryPhysician : "",
       reason: appointment ? appointment.reason : "",
-      schedule: appointment ? new Date(appointment.schedule) : new Date(),
-      note: appointment ? appointment.note : "",
-      cancellationReason: appointment ? appointment.cancellationReason : "",
+      schedule: appointment
+        ? new Date(appointment.schedule)
+        : new Date(Date.now()),
+      note: appointment?.note || "",
+      cancellationReason: appointment?.cancellationReason || "",
     },
   });
-
   const onSubmit = async (values: z.infer<typeof ValidationSchema>) => {
     setIsLoading(true);
     let status;
     switch (type) {
       case "schedule":
         status = "scheduled";
+        break;
+      case "cancel":
+        status = "cancelled";
         break;
       default:
         status = "pending";
@@ -87,10 +90,10 @@ export const AppointmentForm = ({
           userId,
           appointmentId: appointment?.$id!,
           appointment: {
-            primaryPhysician: values?.primaryPhysician,
-            schedule: new Date(values?.schedule),
+            primaryPhysician: values.primaryPhysician,
+            schedule: new Date(values.schedule),
             status: status as Status,
-            cancellationREason: values?.cancellationReason,
+            cancellationReason: values.cancellationReason,
           },
           type,
         };
@@ -132,7 +135,7 @@ export const AppointmentForm = ({
             <p className="text-dark-700">Request a new appointment in 10s.</p>
           </section>
         )}
-        {type != "cancel" && (
+        {type !== "cancel" && (
           <>
             <CustomFormField
               fieldType={FormFieldType.SELECT}
@@ -181,17 +184,17 @@ export const AppointmentForm = ({
             </div>
           </>
         )}
-        {type == "cancel" && (
+        {type === "cancel" && (
           <CustomFormField
             fieldType={FormFieldType.TEXTAREA}
             control={form.control}
-            name="cancelationReason"
+            name="cancellationReason"
             label="Reason for cancelation"
             placeholder="Enter reason for cancelation"
           />
         )}
         <SubmitButton
-          className={type === "cancel" ? "shad-danger-btn" : "shad-primary-btn"}
+          className={`${type === "cancel" ? "shad-danger-btn" : "shad-primary-btn"} w-full`}
           isLoading={isLoading}
         >
           {buttonLabel}
